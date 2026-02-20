@@ -1,0 +1,52 @@
+/**
+ * Auth Proxy — refreshes Supabase session on every request.
+ * Next.js 16+ uses 'proxy.ts' instead of 'middleware.ts'.
+ */
+import { createServerClient } from '@supabase/ssr';
+import { NextResponse, type NextRequest } from 'next/server';
+
+export async function proxy(request: NextRequest) {
+    let supabaseResponse = NextResponse.next({ request });
+
+    // Only run Supabase session refresh if env vars are configured
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+    if (supabaseUrl?.startsWith('https://') && supabaseKey && supabaseKey.length > 20) {
+        const supabase = createServerClient(supabaseUrl, supabaseKey, {
+            cookies: {
+                getAll() {
+                    return request.cookies.getAll();
+                },
+                setAll(cookiesToSet) {
+                    cookiesToSet.forEach(({ name, value }) =>
+                        request.cookies.set(name, value)
+                    );
+                    supabaseResponse = NextResponse.next({ request });
+                    cookiesToSet.forEach(({ name, value, options }) =>
+                        supabaseResponse.cookies.set(name, value, options)
+                    );
+                },
+            },
+        });
+
+        // Refresh session — do not remove this await
+        const { data: { user } } = await supabase.auth.getUser();
+
+        // Protect API routes — return 401 if not authenticated
+        const protectedPaths = ['/api/issues'];
+        const isProtected = protectedPaths.some(p => request.nextUrl.pathname.startsWith(p));
+
+        if (isProtected && !user) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+    }
+
+    return supabaseResponse;
+}
+
+export const config = {
+    matcher: [
+        '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    ],
+};
