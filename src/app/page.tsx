@@ -6,6 +6,8 @@ import React, { useState } from "react";
 import { Sidebar, NavItem } from "@/components/layout/sidebar";
 import { RedesignedDashboard } from "@/components/layout/redesigned-dashboard";
 import { CommandCenter } from "@/components/layout/command-center";
+import { CommunityMap } from "@/components/layout/community-map";
+import { MyContributions } from "@/components/layout/my-contributions";
 import { motion, AnimatePresence } from "framer-motion";
 
 export default function Home() {
@@ -41,7 +43,31 @@ export default function Home() {
             </motion.div>
           )}
 
-          {(activeItem === "map" || activeItem === "profile" || activeItem === "activity") && (
+          {activeItem === "map" && (
+            <motion.div
+              key="map"
+              initial={{ opacity: 0, scale: 0.98 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 1.02 }}
+              className="h-full"
+            >
+              <CommunityMap />
+            </motion.div>
+          )}
+
+          {activeItem === "activity" && (
+            <motion.div
+              key="activity"
+              initial={{ opacity: 0, scale: 0.98 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 1.02 }}
+              className="h-full"
+            >
+              <MyContributions />
+            </motion.div>
+          )}
+
+          {activeItem === "profile" && (
             <motion.div
               key="placeholder"
               initial={{ opacity: 0 }}
@@ -51,7 +77,7 @@ export default function Home() {
             >
               <div className="text-center space-y-4">
                 <div className="h-20 w-20 rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center mx-auto text-slate-700">
-                  {activeItem === "map" ? "MAP" : "USR"}
+                  USR
                 </div>
                 <h3 className="text-lg font-medium capitalize">{activeItem} View coming soon</h3>
                 <p className="text-sm">This module is part of the Phase 2 expansion.</p>
