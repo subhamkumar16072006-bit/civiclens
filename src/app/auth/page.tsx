@@ -13,6 +13,7 @@ export default function AuthPage() {
     const [email, setEmail] = useState("");
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [isOfficerMode, setIsOfficerMode] = useState(false);
     const router = useRouter();
 
     const handleSendOtp = async (e: React.FormEvent) => {
@@ -76,18 +77,39 @@ export default function AuthPage() {
                         </p>
                     </div>
 
+                    {/* Mode Toggle */}
+                    <div className="flex bg-slate-800/50 p-1 rounded-xl mb-6 border border-slate-800/80">
+                        <button
+                            onClick={() => { setIsOfficerMode(false); setError(null); }}
+                            className={`flex-1 py-2 text-sm font-semibold rounded-lg transition-all ${!isOfficerMode ? "bg-emerald-500 text-slate-950 shadow-md shadow-emerald-500/20" : "text-slate-400 hover:text-white"
+                                }`}
+                        >
+                            Citizen
+                        </button>
+                        <button
+                            onClick={() => { setIsOfficerMode(true); setError(null); }}
+                            className={`flex-1 py-2 text-sm font-semibold rounded-lg transition-all ${isOfficerMode ? "bg-blue-500 text-slate-950 shadow-md shadow-blue-500/20" : "text-slate-400 hover:text-white"
+                                }`}
+                        >
+                            Authority
+                        </button>
+                    </div>
+
                     <form onSubmit={handleSendOtp} className="space-y-4">
                         {/* Email input */}
                         <div className="relative">
                             <Mail className="absolute left-3 top-3 h-4 w-4 text-slate-500" />
                             <Input
                                 type="email"
-                                placeholder="you@example.com"
+                                placeholder={isOfficerMode ? "authority@example.com" : "you@example.com"}
                                 value={email}
                                 onChange={e => setEmail(e.target.value)}
                                 required
                                 autoFocus
-                                className="pl-10 bg-slate-800 border-slate-700 text-white placeholder:text-slate-600 focus-visible:ring-emerald-500/30 focus-visible:border-emerald-500/50 h-11 rounded-xl"
+                                className={`pl-10 bg-slate-800 border-slate-700 text-white placeholder:text-slate-600 h-11 rounded-xl transition-all ${isOfficerMode
+                                    ? "focus-visible:ring-blue-500/30 focus-visible:border-blue-500/50"
+                                    : "focus-visible:ring-emerald-500/30 focus-visible:border-emerald-500/50"
+                                    }`}
                             />
                         </div>
 
@@ -106,7 +128,10 @@ export default function AuthPage() {
                         <Button
                             type="submit"
                             disabled={loading || !email.trim()}
-                            className="w-full bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold h-11 rounded-xl shadow-lg shadow-emerald-500/20 gap-2"
+                            className={`w-full font-bold h-11 rounded-xl gap-2 transition-all ${isOfficerMode
+                                ? "bg-blue-500 hover:bg-blue-600 text-slate-950 shadow-lg shadow-blue-500/20"
+                                : "bg-emerald-500 hover:bg-emerald-600 text-slate-950 shadow-lg shadow-emerald-500/20"
+                                }`}
                         >
                             {loading ? (
                                 <Loader2 className="h-4 w-4 animate-spin" />

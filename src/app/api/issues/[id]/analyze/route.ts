@@ -54,7 +54,7 @@ export async function POST(_req: NextRequest, { params }: RouteParams) {
             const mimeType = imageResponse.headers.get('content-type') || 'image/jpeg';
 
             const geminiResponse = await fetch(
-                `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`,
+                `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiApiKey}`,
                 {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -97,7 +97,7 @@ Respond ONLY with a JSON object in this format:
                     prev_status: 'ai_analyzing',
                     new_status: 'validated',
                     actor_id: null,
-                    metadata: { ...parsed, model: 'gemini-1.5-flash' },
+                    metadata: { ...parsed, model: 'gemini-2.5-flash' },
                 });
             }
         } catch (err) {

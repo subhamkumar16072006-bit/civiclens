@@ -15,7 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/lib/hooks/use-auth";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 
 export type NavItem = "dashboard" | "report" | "map" | "profile" | "activity";
 
@@ -25,15 +25,16 @@ interface SidebarProps {
 }
 
 const navItems = [
-    { id: "dashboard", label: "Dashboard", icon: LayoutGrid },
-    { id: "report", label: "Report Issue", icon: Shield },
-    { id: "map", label: "Community Map", icon: MapIcon },
-    { id: "activity", label: "My Contributions", icon: MessageSquare },
+    { id: "dashboard", label: "Dashboard", icon: LayoutGrid, href: "/" },
+    { id: "report", label: "Report Issue", icon: Shield, href: "/" },
+    { id: "map", label: "Community Map", icon: MapIcon, href: "/" },
+    { id: "activity", label: "My Contributions", icon: MessageSquare, href: "/" },
 ] as const;
 
 export function Sidebar({ activeItem, onNavigate }: SidebarProps) {
     const { user, loading, signOut } = useAuth();
     const router = useRouter();
+    const pathname = usePathname();
 
     const handleSignOut = async () => {
         await signOut();
@@ -43,10 +44,22 @@ export function Sidebar({ activeItem, onNavigate }: SidebarProps) {
     const displayName = user?.user_metadata?.username || user?.email?.split("@")[0] || "Contributor";
     const avatarUrl = user?.user_metadata?.avatar_url ?? null;
     const initials = displayName.slice(0, 2).toUpperCase();
+    const [role, setRole] = React.useState<'citizen' | 'officer'>('citizen');
+
+    React.useEffect(() => {
+        if (user) {
+            import("@/lib/supabase/client").then(({ createClient }) => {
+                const supabase = createClient();
+                supabase.from('profiles').select('role').eq('id', user.id).single()
+                    .then(({ data }) => { if (data) setRole(data.role); });
+            });
+        }
+    }, [user]);
+
     return (
         <div className="fixed left-0 top-0 h-screen w-[260px] flex flex-col bg-slate-950 border-r border-slate-900 z-50 p-6">
             {/* Brand Logo */}
-            <div className="flex items-center gap-3 mb-10 px-2">
+            <div className="flex items-center gap-3 mb-10 px-2 cursor-pointer" onClick={() => router.push("/")}>
                 <div className="h-8 w-8 rounded-lg bg-emerald-500/20 flex items-center justify-center text-emerald-500 border border-emerald-500/30">
                     <LayoutGrid className="h-5 w-5" />
                 </div>
@@ -58,21 +71,47 @@ export function Sidebar({ activeItem, onNavigate }: SidebarProps) {
                 {navItems.map((item) => (
                     <button
                         key={item.id}
-                        onClick={() => onNavigate(item.id as NavItem)}
+                        onClick={() => {
+                            if (pathname !== '/') {
+                                router.push('/');
+                            } else {
+                                onNavigate(item.id as NavItem);
+                            }
+                        }}
                         className={cn(
                             "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group",
-                            activeItem === item.id
+                            activeItem === item.id && pathname === '/'
                                 ? "bg-emerald-500/5 text-emerald-500 border border-emerald-500/10"
                                 : "text-slate-400 hover:text-white hover:bg-white/5"
                         )}
                     >
                         <item.icon className={cn(
                             "h-5 w-5 transition-colors",
-                            activeItem === item.id ? "text-emerald-500" : "group-hover:text-white"
+                            activeItem === item.id && pathname === '/' ? "text-emerald-500" : "group-hover:text-white"
                         )} />
                         <span className="text-sm font-medium">{item.label}</span>
                     </button>
                 ))}
+
+                {role === 'officer' && (
+                    <>
+                        <div className="my-2 border-t border-slate-900" />
+                        <button
+                            onClick={() => router.push("/officer/dashboard")}
+                            className={cn(
+                                "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group text-blue-400 hover:text-white hover:bg-white/5",
+                                pathname.includes('/officer')
+                                    ? "bg-blue-500/10 text-blue-500 border border-blue-500/20" : ""
+                            )}
+                        >
+                            <Shield className={cn(
+                                "h-5 w-5 transition-colors group-hover:text-blue-300",
+                                pathname.includes('/officer') ? "text-blue-500" : "text-blue-500/70"
+                            )} />
+                            <span className="text-sm font-medium">Officer HQ</span>
+                        </button>
+                    </>
+                )}
             </nav>
 
             {/* Bottom Section */}

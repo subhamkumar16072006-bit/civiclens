@@ -25,6 +25,7 @@ export interface Profile {
     username: string;
     civic_credits: number;
     avatar_url: string | null;
+    role: 'citizen' | 'officer';
     created_at: string;
 }
 
