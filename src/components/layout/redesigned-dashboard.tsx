@@ -10,42 +10,32 @@ import { FixVerification } from "@/components/reporting/fix-verification";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { isSupabaseConfigured } from "@/lib/supabase/client";
 
-interface Stats {
-    total: number;
-    resolved: number;
-    pending: number;
-    resolvedPct: string;
-}
-
-async function fetchStats(): Promise<Stats> {
-    try {
-        const [allRes, resolvedRes] = await Promise.all([
-            fetch("/api/issues?limit=500"),
-            fetch("/api/issues?status=resolved&limit=500"),
-        ]);
-        const allData = await allRes.json();
-        const resolvedData = await resolvedRes.json();
-        const total = allData.issues?.length ?? 0;
-        const resolved = resolvedData.issues?.length ?? 0;
-        const pending = total - resolved;
-        const resolvedPct = total > 0 ? `${Math.round((resolved / total) * 100)}%` : "0%";
-        return { total, resolved, pending, resolvedPct };
-    } catch {
-        return { total: 0, resolved: 0, pending: 0, resolvedPct: "0%" };
-    }
+interface DashboardData {
+    stats: { total: number; resolved: number; pending: number; resolvedPct: string };
+    mapData: Array<{ id: string; lat: number; lng: number; status: string; category: string }>;
+    latestFix: any | null;
+    leaders: Array<{ id: string; username: string; civic_credits: number; avatar_url: string }>;
+    activity: Array<{ id: string; text: string; time: string; statusColor: string }>;
 }
 
 export function RedesignedDashboard() {
-    const [stats, setStats] = useState<Stats | null>(null);
+    const [data, setData] = useState<DashboardData | null>(null);
 
     useEffect(() => {
         if (!isSupabaseConfigured()) return;
-        fetchStats().then(setStats);
+        fetch("/api/dashboard")
+            .then(res => res.json())
+            .then(d => {
+                // Quick calculation for resolvedPct
+                const pct = d.stats.total > 0 ? `${Math.round((d.stats.resolved / d.stats.total) * 100)}%` : "0%";
+                setData({ ...d, stats: { ...d.stats, resolvedPct: pct } });
+            })
+            .catch(console.error);
     }, []);
 
-    const totalLabel = stats ? stats.total.toLocaleString("en-IN") : "—";
-    const resolvedLabel = stats ? stats.resolvedPct : "—";
-    const subLabel = stats ? `${stats.pending} Pending` : "";
+    const totalLabel = data ? data.stats.total.toLocaleString("en-IN") : "—";
+    const resolvedLabel = data ? data.stats.resolvedPct : "—";
+    const subLabel = data ? `${data.stats.pending} Pending` : "";
 
     return (
         <div className="flex h-full bg-slate-950 overflow-hidden ml-[260px]">
@@ -59,7 +49,7 @@ export function RedesignedDashboard() {
                         <MetricCard
                             label="Total Issues Reported"
                             value={totalLabel}
-                            trend={stats ? `${stats.resolved} Resolved` : ""}
+                            trend={data ? `${data.stats.resolved} Resolved` : ""}
                             trendColor="text-emerald-500"
                         />
                         <MetricCard
@@ -77,7 +67,7 @@ export function RedesignedDashboard() {
                     </div>
 
                     {/* Map Section */}
-                    <PriorityMap />
+                    <PriorityMap mapData={data?.mapData || []} />
 
                     {/* Live Reports Table */}
                     <ReportsTable />
@@ -88,13 +78,13 @@ export function RedesignedDashboard() {
                             <h3 className="text-xl font-black text-white uppercase tracking-tight">Active Resolution</h3>
                             <p className="text-xs text-slate-500">Gemini-Verified structural audit</p>
                         </div>
-                        <FixVerification />
+                        <FixVerification latestFix={data?.latestFix || null} />
                     </section>
                 </div>
             </ScrollArea>
 
             {/* Right Sidebar */}
-            <DashboardRightSidebar />
+            <DashboardRightSidebar leaders={data?.leaders || []} activity={data?.activity || []} />
         </div>
     );
 }

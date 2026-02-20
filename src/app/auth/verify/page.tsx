@@ -2,13 +2,14 @@
 
 export const dynamic = "force-dynamic";
 
-import React, { useState, useRef, useEffect, useCallback } from "react";
+import React, { useState, useRef, useEffect, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { LayoutGrid, Loader2, CheckCircle2, AlertCircle, Mail, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-export default function VerifyEmailPage() {
+// Inner component — uses useSearchParams, must be inside <Suspense>
+function VerifyEmailContent() {
     const [digits, setDigits] = useState<string[]>(["", "", "", "", "", ""]);
     const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
     const [error, setError] = useState<string | null>(null);
@@ -258,5 +259,20 @@ export default function VerifyEmailPage() {
                 </div>
             </motion.div>
         </div>
+    );
+}
+
+// Default export wraps the content in Suspense to satisfy Next.js prerender requirements
+export default function VerifyEmailPage() {
+    return (
+        <Suspense
+            fallback={
+                <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+                    <Loader2 className="h-8 w-8 text-emerald-500 animate-spin" />
+                </div>
+            }
+        >
+            <VerifyEmailContent />
+        </Suspense>
     );
 }
