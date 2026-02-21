@@ -69,10 +69,12 @@ export type ProfileInsert = Omit<Profile, 'civic_credits' | 'created_at'> & {
 };
 
 export type IssueInsert = Omit<Issue,
-    'id' | 'status' | 'ai_score' | 'after_image' | 'created_at' | 'updated_at' | 'report_count' | 'risk_score' | 'risk_reasoning'
+    'id' | 'status' | 'ai_score' | 'after_image' | 'created_at' | 'updated_at' | 'report_count' | 'risk_score' | 'risk_reasoning' | 'translated_title' | 'translated_description'
 > & {
     status?: IssueStatus;
     report_count?: number;
+    translated_title?: string | null;
+    translated_description?: string | null;
 };
 
 export type AuditLedgerInsert = Omit<AuditLedgerEntry, 'id' | 'timestamp'> & {
