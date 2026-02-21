@@ -43,6 +43,8 @@ export function ReportingEngine() {
     const [submitState, setSubmitState] = useState<SubmitState>("idle");
     const [submitError, setSubmitError] = useState<string | null>(null);
     const [createdIssueId, setCreatedIssueId] = useState<string | null>(null);
+    const [duplicateIgnored, setDuplicateIgnored] = useState(false);
+    const [duplicateData, setDuplicateData] = useState<any>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const getLocation = () => {
@@ -77,14 +79,8 @@ export function ReportingEngine() {
         setPreviews(prev => prev.filter((_, i) => i !== idx));
     };
 
-    const handleDuplCheckNext = () => {
-        // Show duplicate dialog on step 2 → 3 for realism
-        setShowDuplicateDialog(true);
-    };
-
     const nextStep = () => {
         if (step === 1 && !selectedCategory) return;
-        if (step === 2) { handleDuplCheckNext(); return; }
         setStep(s => Math.min(s + 1, 3));
     };
     const prevStep = () => setStep(s => Math.max(s - 1, 1));
@@ -103,6 +99,27 @@ export function ReportingEngine() {
         setSubmitState("loading");
         setSubmitError(null);
 
+        if (!duplicateIgnored) {
+            const dupFormData = new FormData();
+            dupFormData.append("lat", String(coords.lat));
+            dupFormData.append("lng", String(coords.lng));
+            if (images[0]) dupFormData.append("image", images[0]);
+
+            try {
+                const dupRes = await fetch("/api/issues/check-duplicate", { method: "POST", body: dupFormData });
+                const dupData = await dupRes.json();
+
+                if (dupData.isDuplicate && dupData.existingIssue) {
+                    setDuplicateData(dupData.existingIssue);
+                    setShowDuplicateDialog(true);
+                    setSubmitState("idle");
+                    return;
+                }
+            } catch (err) {
+                console.error("Duplicate check failed, logging and proceeding.", err);
+            }
+        }
+
         const formData = new FormData();
         formData.append("category", selectedCategory);
         formData.append("title", title);
@@ -111,13 +128,21 @@ export function ReportingEngine() {
         formData.append("lng", String(coords.lng));
         if (address) formData.append("address", address);
         if (images[0]) formData.append("image", images[0]);
+        if (duplicateIgnored) formData.append("ignore_duplicate", "true");
 
         try {
             const res = await fetch("/api/issues", { method: "POST", body: formData });
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || "Submission failed");
-            setCreatedIssueId(data.issue?.id ?? null);
-            setSubmitState("success");
+
+            // Handle successful merge or new issue
+            if (data.isDuplicateMerged) {
+                setCreatedIssueId(data.issue?.id ?? "MERGED");
+                setSubmitState("success"); // We can use the same success screen or add a property, let's just use success
+            } else {
+                setCreatedIssueId(data.issue?.id ?? null);
+                setSubmitState("success");
+            }
         } catch (err) {
             setSubmitError(err instanceof Error ? err.message : "Unknown error");
             setSubmitState("error");
@@ -126,28 +151,54 @@ export function ReportingEngine() {
 
     // Success state
     if (submitState === "success") {
+        const isMerged = createdIssueId === "MERGED";
         return (
             <div className="flex flex-col h-full bg-slate-900 border-x border-slate-800 items-center justify-center p-8 text-center gap-6">
                 <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 300 }}>
-                    <div className="h-20 w-20 rounded-full bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center mx-auto">
-                        <CheckCircle2 className="h-10 w-10 text-emerald-500" />
+                    <div className={cn("h-20 w-20 rounded-full flex items-center justify-center mx-auto border",
+                        isMerged ? "bg-amber-500/20 border-amber-500/30" : "bg-emerald-500/20 border-emerald-500/30"
+                    )}>
+                        {isMerged ? (
+                            <AlertTriangle className="h-10 w-10 text-amber-500" />
+                        ) : (
+                            <CheckCircle2 className="h-10 w-10 text-emerald-500" />
+                        )}
                     </div>
                 </motion.div>
                 <div>
-                    <h2 className="text-xl font-black text-white">Report Submitted!</h2>
-                    <p className="text-sm text-slate-400 mt-2">Gemini AI is analyzing your evidence now.</p>
-                    {createdIssueId && <p className="text-xs text-slate-600 font-mono mt-3">ID: {createdIssueId}</p>}
+                    <h2 className="text-xl font-black text-white">
+                        {isMerged ? "Report Merged!" : "Report Submitted!"}
+                    </h2>
+                    <p className="text-sm text-slate-400 mt-2">
+                        {isMerged
+                            ? "This reported issue was already in our system. We have merged your report to boost its priority!"
+                            : "Gemini AI is analyzing your evidence now."}
+                    </p>
+                    {createdIssueId && !isMerged && <p className="text-xs text-slate-600 font-mono mt-3">ID: {createdIssueId}</p>}
+                    {isMerged && <Badge className="mt-3 bg-amber-500/20 text-amber-500 hover:bg-amber-500/30">Priority Increased</Badge>}
                 </div>
-                <Button
-                    className="bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold"
-                    onClick={() => {
-                        setStep(1); setSelectedCategory(null); setTitle(""); setDescription("");
-                        setCoords(null); setImages([]); setPreviews([]); setSubmitState("idle");
-                        setCreatedIssueId(null); setAddress("");
-                    }}
-                >
-                    Submit Another
-                </Button>
+                <div className="flex flex-col gap-3 w-full max-w-xs mx-auto mt-4">
+                    {createdIssueId && !isMerged && (
+                        <Button
+                            className="bg-blue-600 hover:bg-blue-700 text-white font-bold w-full"
+                            onClick={() => window.open(`/issues/${createdIssueId}`, '_blank')}
+                        >
+                            Track Your Issue
+                        </Button>
+                    )}
+                    <Button
+                        className={cn("text-slate-950 font-bold",
+                            isMerged ? "bg-amber-500 hover:bg-amber-600" : "bg-emerald-500 hover:bg-emerald-600"
+                        )}
+                        onClick={() => {
+                            setStep(1); setSelectedCategory(null); setTitle(""); setDescription("");
+                            setCoords(null); setImages([]); setPreviews([]); setSubmitState("idle");
+                            setCreatedIssueId(null); setAddress(""); setDuplicateIgnored(false); setDuplicateData(null);
+                        }}
+                    >
+                        Submit Another
+                    </Button>
+                </div>
             </div>
         );
     }
@@ -331,22 +382,37 @@ export function ReportingEngine() {
                         </div>
                         <DialogTitle className="text-xl font-bold">Potential Duplicate Detected</DialogTitle>
                         <DialogDescription className="text-slate-400 pt-2">
-                            AI analysis shows a similar report was filed in this area 2 hours ago.
+                            Gemini AI image analysis detected a visually identical pending report exactly {duplicateData ? 'at this location' : 'nearby'}.
                         </DialogDescription>
                     </DialogHeader>
-                    <div className="bg-slate-800/50 p-4 rounded-xl border border-slate-700 my-2">
-                        <div className="flex justify-between items-center mb-2">
-                            <Badge className="bg-amber-500/20 text-amber-500 border-amber-500/30">EXISTING REPORT</Badge>
-                            <span className="text-[10px] text-slate-500">2h ago</span>
+
+                    {duplicateData && (
+                        <div className="bg-slate-800/50 p-4 rounded-xl border border-slate-700 my-2">
+                            <div className="flex justify-between items-center mb-2">
+                                <Badge className="bg-amber-500/20 text-amber-500 border-amber-500/30">PENDING REPORT</Badge>
+                                <span className="text-[10px] text-slate-500 font-mono">ID: {duplicateData.id?.split('-')[0]}</span>
+                            </div>
+                            <p className="text-sm font-medium">"{duplicateData.title}"</p>
                         </div>
-                        <p className="text-sm font-medium">"Deep pothole at main crossing, near the traffic light."</p>
-                    </div>
+                    )}
+
                     <DialogFooter className="flex gap-2 sm:justify-start">
-                        <Button className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white" onClick={() => setShowDuplicateDialog(false)}>
-                            Upvote Existing
+                        <Button className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white" onClick={() => {
+                            // "Upvote Existing" - In a full system this would increment an upvote counter on duplicateData.id
+                            // For this MVP demo, we simply acknowledge it and reset the form to avoid cluttering DB.
+                            setShowDuplicateDialog(false);
+                            setStep(1); setSelectedCategory(null); setTitle(""); setDescription("");
+                            setCoords(null); setImages([]); setPreviews([]); setSubmitState("idle");
+                            setCreatedIssueId(null); setAddress(""); setDuplicateIgnored(false); setDuplicateData(null);
+                        }}>
+                            Upvote Existing Issue
                         </Button>
-                        <Button variant="ghost" className="flex-1 text-slate-400 hover:text-white" onClick={() => { setShowDuplicateDialog(false); setStep(3); }}>
-                            File New One
+                        <Button variant="ghost" className="flex-1 text-slate-400 hover:text-white" onClick={() => {
+                            setShowDuplicateDialog(false);
+                            setDuplicateIgnored(true);
+                            setTimeout(handleSubmit, 100);
+                        }}>
+                            Submit New Anyway
                         </Button>
                     </DialogFooter>
                 </DialogContent>

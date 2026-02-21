@@ -20,10 +20,12 @@ export async function GET(_req: NextRequest, { params }: RouteParams) {
         .select(`
       *,
       profiles(username, avatar_url),
-      audit_ledger(*)
+      audit_ledger(
+          *,
+          profiles(username, avatar_url)
+      )
     `)
         .eq('id', id)
-        .order('timestamp', { referencedTable: 'audit_ledger', ascending: true })
         .single();
 
     if (error) {

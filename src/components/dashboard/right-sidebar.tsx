@@ -5,6 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Radio } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useLanguage } from "@/components/providers/language-provider";
 
 interface Leader {
     id: string;
@@ -26,12 +27,14 @@ interface RightSidebarProps {
 }
 
 export function DashboardRightSidebar({ leaders = [], activity = [] }: RightSidebarProps) {
+    const { t } = useLanguage();
+
     return (
         <div className="w-[340px] h-full flex flex-col gap-12 p-8 bg-slate-950/50 border-l border-slate-900 overflow-y-auto">
             {/* Civic Leaders */}
             <section className="space-y-6">
                 <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-bold text-white uppercase tracking-widest">Civic Leaders</h3>
+                    <h3 className="text-sm font-bold text-white uppercase tracking-widest">{t('nav.civic_leaders') || 'Civic Leaders'}</h3>
                     <div className="h-4 w-4 rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center">
                         <Radio className="h-2 w-2 text-slate-500" />
                     </div>
@@ -52,12 +55,12 @@ export function DashboardRightSidebar({ leaders = [], activity = [] }: RightSide
                         </div>
                     ))}
                     {leaders.length === 0 && (
-                        <p className="text-xs text-slate-500 text-center py-4">No leaders yet.</p>
+                        <p className="text-xs text-slate-500 text-center py-4">{t('nav.no_leaders') || 'No leaders yet.'}</p>
                     )}
                 </div>
 
                 <Button variant="outline" className="w-full bg-slate-900/50 border-slate-800 text-[10px] font-bold text-slate-400 uppercase tracking-widest h-10 hover:text-white hover:border-slate-700">
-                    VIEW ALL RANKINGS
+                    {t('nav.view_all_rankings') || 'VIEW ALL RANKINGS'}
                 </Button>
             </section>
 
@@ -65,7 +68,7 @@ export function DashboardRightSidebar({ leaders = [], activity = [] }: RightSide
             <section className="space-y-6 flex-1">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                        <h3 className="text-sm font-bold text-white uppercase tracking-widest">Live Activity</h3>
+                        <h3 className="text-sm font-bold text-white uppercase tracking-widest">{t('metrics.live_activity') || 'Live Activity'}</h3>
                         <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
                     </div>
                     <Radio className="h-4 w-4 text-slate-700" />

@@ -36,12 +36,17 @@ export interface Issue {
     subcategory: string | null;
     title: string;
     description: string | null;
+    translated_title: string | null;
+    translated_description: string | null;
     lat: number;
     lng: number;
     status: IssueStatus;
     before_image: string | null;
     after_image: string | null;
     ai_score: number | null;
+    report_count: number;
+    risk_score: number | null;
+    risk_reasoning: string | null;
     created_at: string;
     updated_at: string;
 }
@@ -64,9 +69,10 @@ export type ProfileInsert = Omit<Profile, 'civic_credits' | 'created_at'> & {
 };
 
 export type IssueInsert = Omit<Issue,
-    'id' | 'status' | 'ai_score' | 'after_image' | 'created_at' | 'updated_at'
+    'id' | 'status' | 'ai_score' | 'after_image' | 'created_at' | 'updated_at' | 'report_count' | 'risk_score' | 'risk_reasoning'
 > & {
     status?: IssueStatus;
+    report_count?: number;
 };
 
 export type AuditLedgerInsert = Omit<AuditLedgerEntry, 'id' | 'timestamp'> & {

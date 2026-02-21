@@ -8,7 +8,7 @@ export async function GET() {
         // 1. Stats (Total, Resolved, Pending)
         const { data: issues, error: issuesErr } = await supabase
             .from('issues')
-            .select('id, status, lat, lng, created_at, category, title, before_image, ai_score')
+            .select('id, status, lat, lng, created_at, category, title, description, translated_title, translated_description, before_image, ai_score')
             .order('created_at', { ascending: false });
 
         if (issuesErr) throw issuesErr;
@@ -27,8 +27,10 @@ export async function GET() {
             category: i.category
         }));
 
-        // 3. Latest verified fix
-        const latestFix = resolvedList.filter(i => i.before_image && i.ai_score).shift() || null;
+        // 3. Active Fixes
+        const activeFixes = issues.filter(i =>
+            ['in_progress', 'assigned', 'ai_analyzing', 'validated', 'pending'].includes(i.status)
+        );
 
         // 4. Civic Leaders (Top 5 by credits)
         const { data: leaders } = await supabase
@@ -49,7 +51,7 @@ export async function GET() {
         return NextResponse.json({
             stats: { total, resolved, pending },
             mapData,
-            latestFix,
+            activeFixes,
             leaders: leaders || [],
             activity
         });

@@ -5,6 +5,7 @@ import { Plus, Minus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import dynamic from "next/dynamic";
 import { Loader2 } from "lucide-react";
+import { useLanguage } from "@/components/providers/language-provider";
 
 const PriorityMapInner = dynamic<{ mapData: Array<{ id: string; lat: number; lng: number; status: string; category: string }> }>(
     () => import("./priority-map-inner"),
@@ -24,6 +25,7 @@ interface PriorityMapProps {
 
 export function PriorityMap({ mapData = [] }: PriorityMapProps) {
     const [isMounted, setIsMounted] = useState(false);
+    const { t } = useLanguage();
 
     useEffect(() => {
         setIsMounted(true);
@@ -35,17 +37,17 @@ export function PriorityMap({ mapData = [] }: PriorityMapProps) {
 
             {/* Priority Heatmap Overlay (UI Layer over map) */}
             <div className="absolute top-8 left-8 z-[400] w-64 bg-slate-900/80 backdrop-blur-md border border-slate-700/50 p-5 rounded-2xl shadow-2xl pointer-events-none hidden md:block">
-                <h3 className="text-lg font-bold text-white tracking-tight">Active Reports Map</h3>
-                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1 mb-4">LPU Phagwara • Live Setup</p>
+                <h3 className="text-lg font-bold text-white tracking-tight">{t('map.title')}</h3>
+                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1 mb-4">{t('map.location')}</p>
 
                 <div className="flex items-center gap-4">
                     <div className="flex items-center gap-2">
                         <div className="h-2 w-2 rounded-full bg-emerald-500" />
-                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Resolved</span>
+                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{t('metrics.resolved')}</span>
                     </div>
                     <div className="flex items-center gap-2">
                         <div className="h-2 w-2 rounded-full bg-amber-500" />
-                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Pending</span>
+                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{t('metrics.pending')}</span>
                     </div>
                 </div>
             </div>

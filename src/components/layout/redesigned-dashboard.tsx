@@ -9,17 +9,19 @@ import { DashboardRightSidebar } from "@/components/dashboard/right-sidebar";
 import { FixVerification } from "@/components/reporting/fix-verification";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { isSupabaseConfigured } from "@/lib/supabase/client";
+import { useLanguage } from "@/components/providers/language-provider";
 
 interface DashboardData {
     stats: { total: number; resolved: number; pending: number; resolvedPct: string };
     mapData: Array<{ id: string; lat: number; lng: number; status: string; category: string }>;
-    latestFix: any | null;
+    activeFixes: any[];
     leaders: Array<{ id: string; username: string; civic_credits: number; avatar_url: string }>;
     activity: Array<{ id: string; text: string; time: string; statusColor: string }>;
 }
 
 export function RedesignedDashboard() {
     const [data, setData] = useState<DashboardData | null>(null);
+    const { t } = useLanguage();
 
     useEffect(() => {
         if (!isSupabaseConfigured()) return;
@@ -35,7 +37,9 @@ export function RedesignedDashboard() {
 
     const totalLabel = data ? data.stats.total.toLocaleString("en-IN") : "—";
     const resolvedLabel = data ? data.stats.resolvedPct : "—";
-    const subLabel = data ? `${data.stats.pending} Pending` : "";
+    const subLabel = data ? t('header.welcome_user', { name: `${data.stats.pending} ${t('metrics.pending')}` }).replace(t('header.welcome_user', { name: '' }).trim(), '').trim() : "";
+    // Wait, the above subLabel logic is messy. Let's just do:
+    const pendingSubLabel = data ? `${data.stats.pending} ${t('metrics.pending')}` : "";
 
     return (
         <div className="flex h-full bg-slate-950 overflow-hidden ml-[260px]">
@@ -47,21 +51,21 @@ export function RedesignedDashboard() {
                     {/* Live Metrics Row */}
                     <div className="flex gap-6 overflow-x-auto pb-2 scrollbar-hide">
                         <MetricCard
-                            label="Total Issues Reported"
+                            label={t('metrics.total_reported')}
                             value={totalLabel}
-                            trend={data ? `${data.stats.resolved} Resolved` : ""}
+                            trend={data ? `${data.stats.resolved} ${t('metrics.resolved')}` : ""}
                             trendColor="text-emerald-500"
                         />
                         <MetricCard
-                            label="Resolution Rate"
+                            label={t('metrics.resolution_rate')}
                             value={resolvedLabel}
-                            subValue={subLabel}
+                            subValue={pendingSubLabel}
                             trendColor="text-emerald-500"
                         />
                         <MetricCard
-                            label="System Health"
-                            value="Optimal"
-                            status="Live"
+                            label={t('metrics.system_health')}
+                            value={t('metrics.optimal')}
+                            status={t('metrics.live')}
                             statusColor="text-emerald-500"
                         />
                     </div>
@@ -75,10 +79,10 @@ export function RedesignedDashboard() {
                     {/* Fix Verification */}
                     <section className="space-y-6 pt-10 border-t border-slate-900">
                         <div className="flex items-center justify-between">
-                            <h3 className="text-xl font-black text-white uppercase tracking-tight">Active Resolution</h3>
-                            <p className="text-xs text-slate-500">Gemini-Verified structural audit</p>
+                            <h3 className="text-xl font-black text-white uppercase tracking-tight">{t('active.section_title')}</h3>
+                            <p className="text-xs text-slate-500">{t('active.section_sub')}</p>
                         </div>
-                        <FixVerification latestFix={data?.latestFix || null} />
+                        <FixVerification activeFixes={data?.activeFixes || []} />
                     </section>
                 </div>
             </ScrollArea>

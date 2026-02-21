@@ -45,6 +45,10 @@ export async function POST(_req: NextRequest, { params }: RouteParams) {
 
     let aiScore = 0;
     let aiSummary = 'No image provided for analysis.';
+    let aiRiskScore = 1;
+    let aiRiskReasoning = 'No visual evidence to assess risk.';
+    let translatedTitle = issue.title;
+    let translatedDescription = issue.description;
 
     if (issue.before_image) {
         try {
@@ -64,12 +68,22 @@ export async function POST(_req: NextRequest, { params }: RouteParams) {
                                 {
                                     text: `You are a civic issue verification AI. Analyze this image and determine if it matches the reported category: "${issue.category}" and sub-category: "${issue.subcategory || 'N/A'}".
 
+The citizen provided the following text, which may be in a local Indian regional language (like Hindi, Punjabi, Bengali, etc.) or English:
+Title: "${issue.title}"
+Description: "${issue.description || 'N/A'}"
+
+Task 1: Translate the citizen's Title and Description into clear, professional English. If it is already in English, just return the professional English version.
+Task 2: Based on visual safety risk, assign a severity risk score from 1 to 10 (10 being life-threatening, 1 being a cosmetic annoyance). Provide a brief, one-sentence reasoning for this score.
+
 Respond ONLY with a JSON object in this format:
 {
   "verified": true/false,
   "confidence_score": <number 0-100>,
   "summary": "<one sentence describing what you see>",
-  "severity": "low" | "medium" | "high" | "critical"
+  "risk_score": <number 1-10>,
+  "risk_reasoning": "<string>",
+  "translated_title": "<professional english string>",
+  "translated_description": "<professional english string>"
 }`
                                 },
                                 {
@@ -89,6 +103,10 @@ Respond ONLY with a JSON object in this format:
                 const parsed = JSON.parse(textContent);
                 aiScore = parsed.confidence_score ?? 0;
                 aiSummary = parsed.summary ?? 'Analysis complete.';
+                aiRiskScore = parsed.risk_score ?? 1;
+                aiRiskReasoning = parsed.risk_reasoning ?? 'Could not determine risk from image.';
+                translatedTitle = parsed.translated_title || issue.title;
+                translatedDescription = parsed.translated_description || issue.description;
 
                 // 4. Write detailed AI result to audit_ledger
                 await adminClient.from('audit_ledger').insert({
@@ -103,18 +121,24 @@ Respond ONLY with a JSON object in this format:
         } catch (err) {
             console.error('[/api/analyze] Gemini error:', err);
             aiSummary = 'AI analysis failed — manual review required.';
+            aiRiskReasoning = 'Analysis failed due to a system error.';
         }
     }
 
-    // 5. Update issue with AI results
+    // 5. Update issue with AI results and risk scores
     await adminClient.from('issues').update({
         status: 'validated',
         ai_score: aiScore,
+        risk_score: aiRiskScore,
+        risk_reasoning: aiRiskReasoning,
+        translated_title: translatedTitle,
+        translated_description: translatedDescription
     }).eq('id', id);
 
     return NextResponse.json({
         success: true,
         ai_score: aiScore,
         summary: aiSummary,
+        risk_score: aiRiskScore
     });
 }

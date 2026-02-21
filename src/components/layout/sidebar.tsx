@@ -16,6 +16,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/lib/hooks/use-auth";
 import { useRouter, usePathname } from "next/navigation";
+import { useLanguage } from "@/components/providers/language-provider";
 
 export type NavItem = "dashboard" | "report" | "map" | "profile" | "activity";
 
@@ -25,14 +26,15 @@ interface SidebarProps {
 }
 
 const navItems = [
-    { id: "dashboard", label: "Dashboard", icon: LayoutGrid, href: "/" },
-    { id: "report", label: "Report Issue", icon: Shield, href: "/" },
-    { id: "map", label: "Community Map", icon: MapIcon, href: "/" },
-    { id: "activity", label: "My Contributions", icon: MessageSquare, href: "/" },
+    { id: "dashboard", icon: LayoutGrid, href: "/" },
+    { id: "report", icon: Shield, href: "/" },
+    { id: "map", icon: MapIcon, href: "/" },
+    { id: "activity", icon: MessageSquare, href: "/" },
 ] as const;
 
 export function Sidebar({ activeItem, onNavigate }: SidebarProps) {
     const { user, loading, signOut } = useAuth();
+    const { t } = useLanguage();
     const router = useRouter();
     const pathname = usePathname();
 
@@ -41,7 +43,7 @@ export function Sidebar({ activeItem, onNavigate }: SidebarProps) {
         router.push("/auth");
     };
 
-    const displayName = user?.user_metadata?.username || user?.email?.split("@")[0] || "Contributor";
+    const displayName = user?.user_metadata?.username || user?.email?.split("@")[0] || t('nav.contributor');
     const avatarUrl = user?.user_metadata?.avatar_url ?? null;
     const initials = displayName.slice(0, 2).toUpperCase();
     const [role, setRole] = React.useState<'citizen' | 'officer'>('citizen');
@@ -89,7 +91,12 @@ export function Sidebar({ activeItem, onNavigate }: SidebarProps) {
                             "h-5 w-5 transition-colors",
                             activeItem === item.id && pathname === '/' ? "text-emerald-500" : "group-hover:text-white"
                         )} />
-                        <span className="text-sm font-medium">{item.label}</span>
+                        <span className="text-sm font-medium">
+                            {t(item.id === 'dashboard' ? 'nav.dashboard' :
+                                item.id === 'report' ? 'nav.report_issue' :
+                                    item.id === 'map' ? 'nav.community_map' :
+                                        item.id === 'activity' ? 'nav.my_contributions' : '')}
+                        </span>
                     </button>
                 ))}
 
@@ -108,7 +115,7 @@ export function Sidebar({ activeItem, onNavigate }: SidebarProps) {
                                 "h-5 w-5 transition-colors group-hover:text-blue-300",
                                 pathname.includes('/officer') ? "text-blue-500" : "text-blue-500/70"
                             )} />
-                            <span className="text-sm font-medium">Officer HQ</span>
+                            <span className="text-sm font-medium">{t('nav.officer_hq')}</span>
                         </button>
                     </>
                 )}
@@ -121,7 +128,7 @@ export function Sidebar({ activeItem, onNavigate }: SidebarProps) {
                     onClick={() => onNavigate("report")}
                 >
                     <Plus className="h-5 w-5" />
-                    NEW REPORT
+                    {t('nav.new_report')}
                 </Button>
 
                 {/* Live User Card */}
@@ -151,7 +158,7 @@ export function Sidebar({ activeItem, onNavigate }: SidebarProps) {
                                 onClick={handleSignOut}
                                 className="w-full h-7 text-[10px] text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 gap-1 justify-start px-2"
                             >
-                                <LogOut className="h-3 w-3" /> Sign Out
+                                <LogOut className="h-3 w-3" /> {t('nav.sign_out')}
                             </Button>
                         </div>
                     ) : (
@@ -161,14 +168,14 @@ export function Sidebar({ activeItem, onNavigate }: SidebarProps) {
                             className="w-full border-slate-700 text-slate-400 text-xs"
                             onClick={() => router.push("/auth")}
                         >
-                            Sign In
+                            {t('nav.sign_in')}
                         </Button>
                     )}
                 </div>
 
                 <div className="flex gap-2">
                     <Badge className="bg-amber-500/10 text-amber-500 border-amber-500/20 text-[9px] font-bold px-2 py-0">TOP 1%</Badge>
-                    <Badge className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20 text-[9px] font-bold px-2 py-0 uppercase">Verified</Badge>
+                    <Badge className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20 text-[9px] font-bold px-2 py-0 uppercase">{t('nav.verified')}</Badge>
                 </div>
             </div>
         </div>
